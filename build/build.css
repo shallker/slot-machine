@@ -8,13 +8,13 @@
   overflow: hidden;
 }
 .slot-machine >.reels >.reel.one {
-  background-image: url(".//slot-machine/css/../img/reel-01.png");
+  background-image: url("slot-machine/css/../img/reel-01.png");
 }
 .slot-machine >.reels >.reel.two {
-  background-image: url(".//slot-machine/css/../img/reel-02.png");
+  background-image: url("slot-machine/css/../img/reel-02.png");
 }
 .slot-machine >.reels >.reel.three {
-  background-image: url(".//slot-machine/css/../img/reel-03.png");
+  background-image: url("slot-machine/css/../img/reel-03.png");
 }
 .slot-machine >.reels >.reel >.shadow {
   position: absolute;

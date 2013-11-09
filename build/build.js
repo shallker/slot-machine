@@ -199,1578 +199,1577 @@ require.relative = function(parent) {
 
   return localRequire;
 };
-require.register("component-domify/index.js", Function("exports, require, module",
-"\n\
-/**\n\
- * Expose `parse`.\n\
- */\n\
-\n\
-module.exports = parse;\n\
-\n\
-/**\n\
- * Wrap map from jquery.\n\
- */\n\
-\n\
-var map = {\n\
-  option: [1, '<select multiple=\"multiple\">', '</select>'],\n\
-  optgroup: [1, '<select multiple=\"multiple\">', '</select>'],\n\
-  legend: [1, '<fieldset>', '</fieldset>'],\n\
-  thead: [1, '<table>', '</table>'],\n\
-  tbody: [1, '<table>', '</table>'],\n\
-  tfoot: [1, '<table>', '</table>'],\n\
-  colgroup: [1, '<table>', '</table>'],\n\
-  caption: [1, '<table>', '</table>'],\n\
-  tr: [2, '<table><tbody>', '</tbody></table>'],\n\
-  td: [3, '<table><tbody><tr>', '</tr></tbody></table>'],\n\
-  th: [3, '<table><tbody><tr>', '</tr></tbody></table>'],\n\
-  col: [2, '<table><tbody></tbody><colgroup>', '</colgroup></table>'],\n\
-  _default: [0, '', '']\n\
-};\n\
-\n\
-/**\n\
- * Parse `html` and return the children.\n\
- *\n\
- * @param {String} html\n\
- * @return {Array}\n\
- * @api private\n\
- */\n\
-\n\
-function parse(html) {\n\
-  if ('string' != typeof html) throw new TypeError('String expected');\n\
-\n\
-  html = html.replace(/^\\s+|\\s+$/g, ''); // Remove leading/trailing whitespace\n\
-\n\
-  // tag name\n\
-  var m = /<([\\w:]+)/.exec(html);\n\
-  if (!m) return document.createTextNode(html);\n\
-  var tag = m[1];\n\
-\n\
-  // body support\n\
-  if (tag == 'body') {\n\
-    var el = document.createElement('html');\n\
-    el.innerHTML = html;\n\
-    return el.removeChild(el.lastChild);\n\
-  }\n\
-\n\
-  // wrap map\n\
-  var wrap = map[tag] || map._default;\n\
-  var depth = wrap[0];\n\
-  var prefix = wrap[1];\n\
-  var suffix = wrap[2];\n\
-  var el = document.createElement('div');\n\
-  el.innerHTML = prefix + html + suffix;\n\
-  while (depth--) el = el.lastChild;\n\
-\n\
-  // Note: when moving children, don't rely on el.children\n\
-  // being 'live' to support Polymer's broken behaviour.\n\
-  // See: https://github.com/component/domify/pull/23\n\
-  if (1 == el.children.length) {\n\
-    return el.removeChild(el.children[0]);\n\
-  }\n\
-\n\
-  var fragment = document.createDocumentFragment();\n\
-  while (el.children.length) {\n\
-    fragment.appendChild(el.removeChild(el.children[0]));\n\
-  }\n\
-\n\
-  return fragment;\n\
-}\n\
-//@ sourceURL=component-domify/index.js"
-));
-require.register("object-dom-object-element/index.js", Function("exports, require, module",
-"module.exports = require('./lib/object-element');\n\
-//@ sourceURL=object-dom-object-element/index.js"
-));
-require.register("object-dom-object-element/lib/events.js", Function("exports, require, module",
-"var slice = Array.prototype.slice;\n\
-\n\
-module.exports = Events;\n\
-\n\
-function Events() {}\n\
-\n\
-Events.prototype.on = function (eventname, callback) {\n\
-  if (typeof this.eventsRegistry[eventname] === 'undefined') {\n\
-    this.eventsRegistry[eventname] = [];\n\
-  }\n\
-\n\
-  return this.eventsRegistry[eventname].push(callback);\n\
-}\n\
-\n\
-Events.prototype.off = function (eventname, callback) {\n\
-  var i, callbacks = this.eventsRegistry[eventname];\n\
-\n\
-  if (typeof callbacks === 'undefined') {\n\
-    return false;\n\
-  }\n\
-\n\
-  for (i = 0; i < callbacks.length; i++) {\n\
-    if (callbacks[i] === callback) {\n\
-      return callbacks.splice(i, 1);\n\
-    }\n\
-  }\n\
-\n\
-  return false;\n\
-}\n\
-\n\
-Events.prototype.trigger = function (eventname, args) {\n\
-  args = slice.call(arguments);\n\
-  eventname = args.shift();\n\
-\n\
-  var callbacks = this.eventsRegistry[eventname];\n\
-  var host = this;\n\
-\n\
-  if (typeof callbacks === 'undefined') {\n\
-    return this;\n\
-  }\n\
-\n\
-  callbacks.forEach(function (callback, index) {\n\
-    setTimeout(function () {\n\
-      callback.apply(host, args);\n\
-    }, 0);\n\
-  });\n\
-\n\
-  return this;\n\
-}\n\
-\n\
-Events.prototype.triggerSync = function (eventname, args) {\n\
-  args = slice.call(arguments);\n\
-  eventname = args.shift();\n\
-\n\
-  var callbacks = this.eventsRegistry[eventname];\n\
-  var host = this;\n\
-\n\
-  if (typeof callbacks === 'undefined') {\n\
-    return this;\n\
-  }\n\
-\n\
-  callbacks.forEach(function (callback, index) {\n\
-    callback.apply(host, args);\n\
-  });\n\
-\n\
-  return this;\n\
-}\n\
-//@ sourceURL=object-dom-object-element/lib/events.js"
-));
-require.register("object-dom-object-element/lib/object-element.js", Function("exports, require, module",
-"var domify = require('domify');\n\
-var Events = require('./events');\n\
-var slice = Array.prototype.slice;\n\
-var supportProto = Object.getPrototypeOf({__proto__: null}) === null;\n\
-\n\
-module.exports = ObjectElement;\n\
-\n\
-function ObjectElement(element) {\n\
-  Events.apply(this, arguments);\n\
-\n\
-  var eventsRegistry = {};\n\
-\n\
-  Object.defineProperty(this, 'eventsRegistry', {\n\
-    get: function () {\n\
-      return eventsRegistry\n\
-    }\n\
-  });\n\
-\n\
-  this.element = element;\n\
-}\n\
-\n\
-if (supportProto) {\n\
-  ObjectElement.prototype.__proto__ = Events.prototype;\n\
-} else {\n\
-  ObjectElement.prototype = Object.create(Events.prototype);\n\
-}\n\
-\n\
-ObjectElement.prototype.defineProperty = function (name, defines) {\n\
-  Object.defineProperty(this, name, defines);\n\
-}\n\
-\n\
-ObjectElement.prototype.defineProperty('OBJECT_ELEMENT', {\n\
-  get: function () {\n\
-    return 1;\n\
-  }\n\
-});\n\
-\n\
-/**\n\
- * Shortcut to .element.id\n\
- */\n\
-ObjectElement.prototype.defineProperty('id', {\n\
-  get: function () {\n\
-    return this.element.id;\n\
-  },\n\
-\n\
-  set: function (value) {\n\
-    this.element.id = value;\n\
-  }\n\
-});\n\
-\n\
-/**\n\
- * Get or set textContent of the element\n\
- */\n\
-ObjectElement.prototype.defineProperty('text', {\n\
-  get: function () {\n\
-    return this.element.textContent;\n\
-  },\n\
-\n\
-  set: function (value) {\n\
-    this.element.textContent = value;\n\
-  }\n\
-});\n\
-\n\
-/**\n\
- * Get or set innerHTML of the element\n\
- */\n\
-ObjectElement.prototype.defineProperty('html', {\n\
-  get: function () {\n\
-    return this.element.innerHTML;\n\
-  },\n\
-\n\
-  set: function (htmlString) {\n\
-    this.element.innerHTML = '';\n\
-    this.element.appendChild(domify(htmlString));\n\
-  }\n\
-});\n\
-\n\
-/**\n\
- * Call a function on this element\n\
- * @param  {Function callback}\n\
- * @return {Null}\n\
- */\n\
-ObjectElement.prototype.tie = function (callback) {\n\
-  callback.call(this, this.element);\n\
-}\n\
-//@ sourceURL=object-dom-object-element/lib/object-element.js"
-));
-require.register("object-dom-object-div-element/index.js", Function("exports, require, module",
-"module.exports = require('./lib/object-div-element');\n\
-//@ sourceURL=object-dom-object-div-element/index.js"
-));
-require.register("object-dom-object-div-element/lib/object-div-element.js", Function("exports, require, module",
-"var ObjectElement = require('object-element');\n\
-var supportProto = Object.getPrototypeOf({__proto__: null}) === null;\n\
-\n\
-module.exports = ObjectDivElement;\n\
-\n\
-function ObjectDivElement(element) {\n\
-  element = element || document.createElement('div');\n\
-  ObjectElement.call(this, element);\n\
-}\n\
-\n\
-if (supportProto) {\n\
-  ObjectDivElement.prototype.__proto__ = ObjectElement.prototype;\n\
-} else {\n\
-  ObjectDivElement.prototype = Object.create(ObjectElement.prototype);\n\
-}\n\
-\n\
-ObjectDivElement.prototype.defineProperty('tag', {\n\
-  get: function () {\n\
-    return 'div';\n\
-  }\n\
-});\n\
-//@ sourceURL=object-dom-object-div-element/lib/object-div-element.js"
-));
-require.register("object-dom-object-document/index.js", Function("exports, require, module",
-"module.exports = require('./lib/object-document');\n\
-//@ sourceURL=object-dom-object-document/index.js"
-));
-require.register("object-dom-object-document/lib/object-document.js", Function("exports, require, module",
-"var ObjectElement = require('object-element');\n\
-var ObjectDivElement = require('object-div-element');\n\
-var slice = Array.prototype.slice;\n\
-\n\
-module.exports = ObjectDocument;\n\
-\n\
-function ObjectDocument() {\n\
-\n\
-}\n\
-\n\
-/**\n\
- * Wrap HTMLElement with ObjectElement\n\
- * @param  {HTMLElement | ObjectElement element}\n\
- * @return {ObjectElement}\n\
- */\n\
-ObjectDocument.wrapElement = function (element) {\n\
-  return element.OBJECT_ELEMENT ? element : new ObjectElement(element);\n\
-}\n\
-\n\
-/**\n\
- * Loop through HTMLElements and wrap each of them with ObjectElement\n\
- * @param  {Array elements}\n\
- * @return {Array}\n\
- */\n\
-ObjectDocument.wrapElements = function (elements) {\n\
-  elements = slice.call(elements);\n\
-\n\
-  return elements.map(function (element, i) {\n\
-    return ObjectDocument.wrapElement(element);\n\
-  });\n\
-}\n\
-\n\
-ObjectDocument.createElement = function (tag) {\n\
-  if (tag) {\n\
-    return this.wrapElement(document.createElement(tag));\n\
-  } else {\n\
-    return new ObjectDivElement;\n\
-  }\n\
-}\n\
-//@ sourceURL=object-dom-object-document/lib/object-document.js"
-));
-require.register("object-dom-object-element-style/index.js", Function("exports, require, module",
-"module.exports = require('./lib/object-element-style');\n\
-//@ sourceURL=object-dom-object-element-style/index.js"
-));
-require.register("object-dom-object-element-style/lib/object-element-style.js", Function("exports, require, module",
-"var ObjectElement = require('object-element');\n\
-\n\
-/**\n\
- * Shortcut to .element.style\n\
- */\n\
-ObjectElement.prototype.defineProperty('style', {\n\
-  get: function () {\n\
-    return this.element.style;\n\
-  }\n\
-});\n\
-\n\
-/**\n\
- * Get element's visibility state\n\
- */\n\
-ObjectElement.prototype.defineProperty('hidden', {\n\
-  get: function () {\n\
-    return this.element.style.display === 'none' ? true : false;\n\
-  }\n\
-});\n\
-\n\
-/**\n\
- * Get or set element's opacity\n\
- */\n\
-ObjectElement.prototype.defineProperty('opacity', {\n\
-  get: function () {\n\
-    return parseInt(this.element.style.opacity, 10);\n\
-  },\n\
-\n\
-  set: function (value) {\n\
-    this.element.style.opacity = value;\n\
-  }\n\
-});\n\
-\n\
-/**\n\
- * Get or set element's width\n\
- */\n\
-ObjectElement.prototype.defineProperty('width', {\n\
-  get: function () {\n\
-    return this.element.offsetWidth;\n\
-  },\n\
-\n\
-  set: function (value) {\n\
-    this.style.width = value + 'px';\n\
-  }\n\
-});\n\
-\n\
-/**\n\
- * Get or set element's height\n\
- */\n\
-ObjectElement.prototype.defineProperty('height', {\n\
-  get: function () {\n\
-    return this.element.offsetHeight;\n\
-  },\n\
-\n\
-  set: function (value) {\n\
-    this.style.height = value + 'px';\n\
-  }\n\
-});\n\
-\n\
-/**\n\
- * Display element in DOM\n\
- */\n\
-ObjectElement.prototype.show = function () {\n\
-  if (this.element.style.display === 'none') {\n\
-    this.element.style.display = '';\n\
-  } else {\n\
-    this.element.style.display = 'block';\n\
-  }\n\
-}\n\
-\n\
-ObjectElement.prototype.displayBlock = function () {\n\
-  this.element.style.display = 'block';  \n\
-}\n\
-\n\
-ObjectElement.prototype.displayNone = function () {\n\
-  this.element.style.display = 'none';  \n\
-}\n\
-\n\
-/**\n\
- * Hide element in DOM\n\
- */\n\
-ObjectElement.prototype.hide = function () {\n\
-  this.element.style.display = 'none';\n\
-}\n\
-\n\
-/**\n\
- * Get or set element's tyle\n\
- * @param  [String name]\n\
- * @param  [String value]\n\
- * @return {[type]}\n\
- */\n\
-ObjectElement.prototype.css = function (name, value) {\n\
-  if (arguments.length === 0) {\n\
-    return this.element.style;\n\
-  }\n\
-\n\
-  if (arguments.length === 1) {\n\
-    return this.element.style[name];\n\
-  }\n\
-\n\
-  if (arguments.length === 2) {\n\
-    this.style[name] = value;\n\
-  }\n\
-}\n\
-\n\
-ObjectElement.prototype.hasClass = function (name) {\n\
-  return this.element.classList.contains(name);\n\
-}\n\
-\n\
-ObjectElement.prototype.addClass = function (name) {\n\
-  this.triggerSync('add-class', name);\n\
-  this.element.classList.add(name);\n\
-  this.trigger('added-class', name);\n\
-}\n\
-\n\
-ObjectElement.prototype.removeClass = function (name) {\n\
-  this.triggerSync('remove-class', name);\n\
-  this.element.classList.remove(name);\n\
-  this.trigger('removed-class', name);\n\
-}\n\
-\n\
-ObjectElement.prototype.toggleClass = function (name) {\n\
-  this.triggerSync('toggle-class', name);\n\
-\n\
-  if (this.hasClass(name)) {\n\
-    this.removeClass(name);\n\
-  } else {\n\
-    this.addClass(name);\n\
-  }\n\
-\n\
-  this.trigger('toggled-class', name);\n\
-}\n\
-//@ sourceURL=object-dom-object-element-style/lib/object-element-style.js"
-));
-require.register("object-dom-object-element-selection/index.js", Function("exports, require, module",
-"module.exports = require('./lib/object-element-selection');\n\
-//@ sourceURL=object-dom-object-element-selection/index.js"
-));
-require.register("object-dom-object-element-selection/lib/object-element-selection.js", Function("exports, require, module",
-"var ObjectElement = require('object-element');\n\
-var ObjectDocument = require('object-document');\n\
-var slice = Array.prototype.slice;\n\
-\n\
-/**\n\
- * Match the element against the selector\n\
- * @param  {ObjectElement | Element element}\n\
- * @param  {String selector}\n\
- * @return {Boolean}\n\
- */\n\
-function match(element, selector) {\n\
-  element = element.OBJECT_ELEMENT ? element.element : element;\n\
-\n\
-  var matchesSelector = element.webkitMatchesSelector \n\
-    || element.mozMatchesSelector \n\
-    || element.oMatchesSelector \n\
-    || element.matchesSelector;\n\
-\n\
-  return matchesSelector.call(element, selector);\n\
-}\n\
-\n\
-/**\n\
- * Loop through all elements and match theme against th selector\n\
- * @param  {Array elements}\n\
- * @param  {String selector}\n\
- * @return {Array elements}\n\
- */\n\
-function matchAll(elements, selector) {\n\
-  return elements.filter(function (element, i) {\n\
-    return match(element, selector);\n\
-  });\n\
-}\n\
-\n\
-/**\n\
- * Loop through each element and return the first matched element\n\
- * @param  {Array elements}\n\
- * @param  {String selector}\n\
- * @return {Element | Null}\n\
- */\n\
-function matchFirst(elements, selector) {\n\
-  var i;\n\
-\n\
-  for (i = 0; i < elements.length; i++) {\n\
-    if (match(elements[i], selector)) {\n\
-      return elements[i];\n\
-    }\n\
-  }\n\
-\n\
-  return null;\n\
-}\n\
-\n\
-/**\n\
- * Loop through each element and return the last matched element\n\
- * @param  {Array elements}\n\
- * @param  {String selector}\n\
- * @return {Element | Null}\n\
- */\n\
-function matchLast(elements, selector) {\n\
-  /**\n\
-   * Clone an array of the elements reference first\n\
-   */\n\
-  return matchFirst(elements.slice().reverse(), selector);\n\
-}\n\
-\n\
-/**\n\
- * Return an array containing ELEMENT_NODE from ndoes\n\
- * @param  {NodeList nodes}\n\
- * @return {Array}\n\
- */\n\
-function elementNodesOf(nodes) {\n\
-  return slice.call(nodes).map(function (node, i) {\n\
-    if (node.nodeType === 1) {\n\
-      return node;\n\
-    }\n\
-  });\n\
-}\n\
-\n\
-ObjectElement.prototype.defineProperty('ancestors', {\n\
-  get: function () {\n\
-    var ancestors = [],\n\
-        parent = this.parent;\n\
-\n\
-    while (parent && (parent.nodeType !== parent.DOCUMENT_NODE)) {\n\
-      ancestors.push(parent);\n\
-      parent = parent.parentNode;\n\
-    }\n\
-\n\
-    return ancestors;\n\
-  }\n\
-});\n\
-\n\
-ObjectElement.prototype.defineProperty('parent', {\n\
-  get: function () {\n\
-    return ObjectDocument.wrapElement(this.element.parentNode);\n\
-  }\n\
-});\n\
-\n\
-ObjectElement.prototype.defineProperty('firstSibling', {\n\
-  get: function () {\n\
-    return ObjectDocument.wrapElement(this.parent).firstChild;\n\
-  }\n\
-});\n\
-\n\
-ObjectElement.prototype.defineProperty('lastSibling', {\n\
-  get: function () {\n\
-    return ObjectDocument.wrapElement(this.parent).lastChild;\n\
-  }\n\
-});\n\
-\n\
-ObjectElement.prototype.defineProperty('prevSibling', {\n\
-  get: function () {\n\
-    var prev;\n\
-\n\
-    if ('previousElementSibling' in this.element) {\n\
-      prev = this.element.previousElementSibling;\n\
-    } else {\n\
-      prev = this.element.previousSibling;\n\
-\n\
-      while (prev && prev.nodeType !== prev.ELEMENT_NODE) {\n\
-        prev = prev.previousSibling;\n\
-      }\n\
-    }\n\
-\n\
-    return prev ? ObjectDocument.wrapElement(prev) : null;\n\
-  }\n\
-});\n\
-\n\
-ObjectElement.prototype.defineProperty('nextSibling', {\n\
-  get: function () {\n\
-    var next;\n\
-    if ('nextElementSibling' in this.element) {\n\
-      next = this.element.nextElementSibling;\n\
-    } else {\n\
-      next = this.element.nextSibling;\n\
-\n\
-      while (next && next.nodeType !== next.ELEMENT_NODE) {\n\
-        next = next.nextSibling;\n\
-      }\n\
-    }\n\
-\n\
-    return next ? ObjectDocument.wrapElement(next) : null;\n\
-  }\n\
-});\n\
-\n\
-ObjectElement.prototype.defineProperty('prevSiblings', {\n\
-  get: function () {\n\
-    var prevs = [];\n\
-    var prev = this.prevSibling;\n\
-\n\
-    while (prev) {\n\
-      prevs.push(prev);\n\
-      prev = prev.prevSibling;\n\
-    }\n\
-\n\
-    return prevs.reverse();\n\
-  }\n\
-});\n\
-\n\
-ObjectElement.prototype.defineProperty('nextSiblings', {\n\
-  get: function () {\n\
-    var nexts = [];\n\
-    var next = this.nextSibling;\n\
-\n\
-    while (next) {\n\
-      nexts.push(next);\n\
-      next = next.nextSibling;\n\
-    }\n\
-\n\
-    return nexts;\n\
-  }\n\
-});\n\
-\n\
-ObjectElement.prototype.defineProperty('siblings', {\n\
-  get: function () {\n\
-    return this.prevSiblings.concat(this.nextSiblings);\n\
-  }\n\
-});\n\
-\n\
-ObjectElement.prototype.defineProperty('firstChild', {\n\
-  get: function () {\n\
-    var first;\n\
-\n\
-    if ('firstElementChild' in this.element) {\n\
-      first = this.element.firstElementChild;\n\
-    } else {\n\
-      first = this.element.firstChild;\n\
-\n\
-      while (first && first.nodeType !== first.ELEMENT_NODE) {\n\
-        first = first.nextSibling;\n\
-      }\n\
-    }\n\
-\n\
-    return first ? ObjectDocument.wrapElement(first) : null;\n\
-  }\n\
-});\n\
-\n\
-ObjectElement.prototype.defineProperty('lastChild', {\n\
-  get: function () {\n\
-    var last;\n\
-\n\
-    if ('lastElementChild' in this.element) {\n\
-      last = this.element.lastElementChild;\n\
-    } else {\n\
-      last = this.element.lastChild;\n\
-\n\
-      while (last && last.nodeType !== last.ELEMENT_NODE) {\n\
-        last = last.previousSibling;\n\
-      }\n\
-    }\n\
-\n\
-    return last ? ObjectDocument.wrapElement(last) : null;\n\
-  }\n\
-});\n\
-\n\
-/**\n\
- * Get the fist level child elements\n\
- * @param  {[type] element}\n\
- * @return {[type]}\n\
- */\n\
-ObjectElement.prototype.defineProperty('children', {\n\
-  get: function () {\n\
-    var children;\n\
-\n\
-    if ('children' in this.element) {\n\
-      children = slice.call(this.element.children);\n\
-    } else {\n\
-      children = slice.call(this.element.childNodes).map(function (node, i) {\n\
-        if (node.nodeType === node.ELEMENT_NODE) {\n\
-          return node;\n\
-        }\n\
-      });\n\
-    }\n\
-\n\
-    if (children.length === 0) {\n\
-      return children;\n\
-    }\n\
-\n\
-    return ObjectDocument.wrapElements(children);\n\
-  }\n\
-});\n\
-\n\
-/** #TODO */\n\
-ObjectElement.prototype.defineProperty('descendants', {\n\
-  get: function () {\n\
-\n\
-  }\n\
-});\n\
-\n\
-/**\n\
- * Matching the element against selector\n\
- * @param  {String selector}\n\
- * @return {Boolean}\n\
- */\n\
-ObjectElement.prototype.match = function (selector) {\n\
-  var matchesSelector = this.element.matchesSelector \n\
-    || this.element.webkitMatchesSelector \n\
-    || this.element.mozMatchesSelector \n\
-    || this.element.oMatchesSelector;\n\
-\n\
-  return matchesSelector.call(this.element, selector);\n\
-}\n\
-\n\
-/** Selection methods */\n\
-\n\
-ObjectElement.prototype.selectFirstSibling = function (selector) {\n\
-  \n\
-}\n\
-\n\
-ObjectElement.prototype.selectLastSibling = function (selector) {\n\
-  \n\
-}\n\
-\n\
-ObjectElement.prototype.selectPrevSibling = function (selector) {\n\
-  var prev = matchLast(this.prevSiblings, selector);\n\
-\n\
-  if (prev === null) {\n\
-    return prev;\n\
-  }\n\
-\n\
-  return ObjectDocument.wrapElement(prev);\n\
-}\n\
-\n\
-ObjectElement.prototype.selectNextSibling = function (selector) {\n\
-  var next = matchFirst(this.nextSiblings, selector);\n\
-\n\
-  if (next === null) {\n\
-    return next;\n\
-  }\n\
-\n\
-  return ObjectDocument.wrapElement(next);\n\
-}\n\
-\n\
-/**\n\
- * Alias of .selectPrevSibling()\n\
- */\n\
-ObjectElement.prototype.prev = ObjectElement.prototype.selectPrevSibling;\n\
-\n\
-/**\n\
- * Alias of .selectNextSibling()\n\
- */\n\
-ObjectElement.prototype.next = ObjectElement.prototype.selectNextSibling;\n\
-\n\
-ObjectElement.prototype.selectPrevSiblings = function (selector) {\n\
-  var prevs = matchAll(this.prevSiblings, selector);\n\
-\n\
-  if (prevs.length === 0) {\n\
-    return prevs;\n\
-  }\n\
-\n\
-  return ObjectDocument.wrapElements(prevs);\n\
-}\n\
-\n\
-ObjectElement.prototype.selectNextSiblings = function (selector) {\n\
-  var nexts = matchAll(this.nextSiblings, selector);\n\
-\n\
-  if (nexts.length === 0) {\n\
-    return nexts;\n\
-  }\n\
-\n\
-  return ObjectDocument.wrapElements(nexts);\n\
-}\n\
-\n\
-ObjectElement.prototype.selectSiblings = function (selector) {\n\
-  return this.selectPrevSiblings(selector).concat(this.selectNextSiblings(selector));\n\
-}\n\
-\n\
-/**\n\
- * Select element's child elements by selector or not\n\
- * @param  {String selector}\n\
- * @return {Array}\n\
- */\n\
-ObjectElement.prototype.selectChildren = function (selector) {\n\
-  var children = this.children;\n\
-\n\
-  if (children.length && selector) {\n\
-    children = matchAll(children, selector);\n\
-  }\n\
-\n\
-  if (children.length === 0) {\n\
-    return children;\n\
-  }\n\
-\n\
-  return ObjectDocument.wrapElements(children);\n\
-}\n\
-\n\
-/**\n\
- * Get first child element by selector or not\n\
- * @param  {String selector}\n\
- * @return {ObjectElement}\n\
- */\n\
-ObjectElement.prototype.selectFirstChild = function (selector) {\n\
-  return ObjectDocument.wrapElement(matchFirst(this.children, selector));\n\
-}\n\
-\n\
-/**\n\
- * Get last child element by the selector or not\n\
- * @param  {String selector}\n\
- * @return {ObjectElement}\n\
- */\n\
-ObjectElement.prototype.selectLastChild = function (selector) {\n\
-  return ObjectDocument.wrapElement(matchLast(this.children, selector));\n\
-}\n\
-\n\
-/**\n\
- * Select all elements descended from the element that match the selector\n\
- * @param  {String selector}\n\
- * @return {Array}\n\
- */\n\
-ObjectElement.prototype.select = function (selector) {\n\
-  var nodeList = slice.call(this.element.querySelectorAll(selector));\n\
-\n\
-  if (nodeList.length === 0) {\n\
-    return [];\n\
-  }\n\
-\n\
-  return ObjectDocument.wrapElements(nodeList);\n\
-}\n\
-\n\
-/**\n\
- * Select the first element descended from the element that matchs the selector\n\
- * @param  {String selector}\n\
- * @return {ObjectElement | null}\n\
- */\n\
-ObjectElement.prototype.selectFirst = function (selector) {\n\
-  var element = this.element.querySelector(selector);\n\
-\n\
-  if (element === null) {\n\
-    return null;\n\
-  }\n\
-\n\
-  return ObjectDocument.wrapElement(element);\n\
-}\n\
-\n\
-/**\n\
- * Select the last element descended from the element that matchs the selector\n\
- * @param  {String selector}\n\
- * @return {ObjectElement | null}\n\
- */\n\
-ObjectElement.prototype.selectLast = function (selector) {\n\
-  var elements = this.select(selector);\n\
-\n\
-  if (elements.length === 0) {\n\
-    return null;\n\
-  }\n\
-\n\
-  return ObjectDocument.wrapElement(elements.pop());\n\
-}\n\
-//@ sourceURL=object-dom-object-element-selection/lib/object-element-selection.js"
-));
-require.register("polyfill-Array.prototype.map/component.js", Function("exports, require, module",
-"require('./Array.prototype.map');\n\
-//@ sourceURL=polyfill-Array.prototype.map/component.js"
-));
-require.register("polyfill-Array.prototype.map/Array.prototype.map.js", Function("exports, require, module",
-"// @from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map\n\
-// Production steps of ECMA-262, Edition 5, 15.4.4.19\n\
-// Reference: http://es5.github.com/#x15.4.4.19\n\
-if (!Array.prototype.map) {\n\
-  Array.prototype.map = function(callback, thisArg) {\n\
-\n\
-    var T, A, k;\n\
-\n\
-    if (this == null) {\n\
-      throw new TypeError(\" this is null or not defined\");\n\
-    }\n\
-\n\
-    // 1. Let O be the result of calling ToObject passing the |this| value as the argument.\n\
-    var O = Object(this);\n\
-\n\
-    // 2. Let lenValue be the result of calling the Get internal method of O with the argument \"length\".\n\
-    // 3. Let len be ToUint32(lenValue).\n\
-    var len = O.length >>> 0;\n\
-\n\
-    // 4. If IsCallable(callback) is false, throw a TypeError exception.\n\
-    // See: http://es5.github.com/#x9.11\n\
-    if (typeof callback !== \"function\") {\n\
-      throw new TypeError(callback + \" is not a function\");\n\
-    }\n\
-\n\
-    // 5. If thisArg was supplied, let T be thisArg; else let T be undefined.\n\
-    if (thisArg) {\n\
-      T = thisArg;\n\
-    }\n\
-\n\
-    // 6. Let A be a new array created as if by the expression new Array(len) where Array is\n\
-    // the standard built-in constructor with that name and len is the value of len.\n\
-    A = new Array(len);\n\
-\n\
-    // 7. Let k be 0\n\
-    k = 0;\n\
-\n\
-    // 8. Repeat, while k < len\n\
-    while(k < len) {\n\
-\n\
-      var kValue, mappedValue;\n\
-\n\
-      // a. Let Pk be ToString(k).\n\
-      //   This is implicit for LHS operands of the in operator\n\
-      // b. Let kPresent be the result of calling the HasProperty internal method of O with argument Pk.\n\
-      //   This step can be combined with c\n\
-      // c. If kPresent is true, then\n\
-      if (k in O) {\n\
-\n\
-        // i. Let kValue be the result of calling the Get internal method of O with argument Pk.\n\
-        kValue = O[ k ];\n\
-\n\
-        // ii. Let mappedValue be the result of calling the Call internal method of callback\n\
-        // with T as the this value and argument list containing kValue, k, and O.\n\
-        mappedValue = callback.call(T, kValue, k, O);\n\
-\n\
-        // iii. Call the DefineOwnProperty internal method of A with arguments\n\
-        // Pk, Property Descriptor {Value: mappedValue, : true, Enumerable: true, Configurable: true},\n\
-        // and false.\n\
-\n\
-        // In browsers that support Object.defineProperty, use the following:\n\
-        // Object.defineProperty(A, Pk, { value: mappedValue, writable: true, enumerable: true, configurable: true });\n\
-\n\
-        // For best browser support, use the following:\n\
-        A[ k ] = mappedValue;\n\
-      }\n\
-      // d. Increase k by 1.\n\
-      k++;\n\
-    }\n\
-\n\
-    // 9. return A\n\
-    return A;\n\
-  };      \n\
-}\n\
-//@ sourceURL=polyfill-Array.prototype.map/Array.prototype.map.js"
-));
-require.register("shallker-array-forEach-shim/index.js", Function("exports, require, module",
-"/*\n\
-  @from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach\n\
-*/\n\
-if (!Array.prototype.forEach) {\n\
-    Array.prototype.forEach = function (fn, scope) {\n\
-        'use strict';\n\
-        var i, len;\n\
-        for (i = 0, len = this.length; i < len; ++i) {\n\
-            if (i in this) {\n\
-                fn.call(scope, this[i], i, this);\n\
-            }\n\
-        }\n\
-    };\n\
-}\n\
-//@ sourceURL=shallker-array-forEach-shim/index.js"
-));
-require.register("shallker-wang-dever/component.js", Function("exports, require, module",
-"require('Array.prototype.map');\n\
-require('array-foreach-shim');\n\
-\n\
-exports = module.exports = require('./util/dever');\n\
-\n\
-exports.version = '2.0.1';\n\
-//@ sourceURL=shallker-wang-dever/component.js"
-));
-require.register("shallker-wang-dever/util/dever.js", Function("exports, require, module",
-"/* Log level */\n\
-/*\n\
-  0 EMERGENCY system is unusable\n\
-  1 ALERT action must be taken immediately\n\
-  2 CRITICAL the system is in critical condition\n\
-  3 ERROR error condition\n\
-  4 WARNING warning condition\n\
-  5 NOTICE a normal but significant condition\n\
-  6 INFO a purely informational message\n\
-  7 DEBUG messages to debug an application\n\
-*/\n\
-\n\
-var slice = Array.prototype.slice,\n\
-    dev,\n\
-    pro,\n\
-    config,\n\
-    level = {\n\
-      \"0\": \"EMERGENCY\",\n\
-      \"1\": \"ALERT\",\n\
-      \"2\": \"CRITICAL\",\n\
-      \"3\": \"ERROR\",\n\
-      \"4\": \"WARNING\",\n\
-      \"5\": \"NOTICE\",\n\
-      \"6\": \"INFO\",\n\
-      \"7\": \"DEBUG\"\n\
-    };\n\
-\n\
-function readFileJSON(path) {\n\
-  var json = require('fs').readFileSync(path, {encoding: 'utf8'});\n\
-  return JSON.parse(json);\n\
-}\n\
-\n\
-function loadConfig(name) {\n\
-  return readFileJSON(process.env.PWD + '/' + name);\n\
-}\n\
-\n\
-function defaultConfig() {\n\
-  return {\n\
-    \"output\": {\n\
-      \"EMERGENCY\": false,\n\
-      \"ALERT\": false,\n\
-      \"CRITICAL\": false,\n\
-      \"ERROR\": false,\n\
-      \"WARNING\": true,\n\
-      \"NOTICE\": true,\n\
-      \"INFO\": true,\n\
-      \"DEBUG\": false \n\
-    },\n\
-    \"throw\": false\n\
-  }\n\
-}\n\
-\n\
-try { dev = loadConfig('dev.json'); } catch (e) {}\n\
-try { pro = loadConfig('pro.json'); } catch (e) {}\n\
-\n\
-config = dev || pro || defaultConfig();\n\
-\n\
-function log() {\n\
-  console.log.apply(console, slice.call(arguments));\n\
-}\n\
-\n\
-function debug() {\n\
-  var args = slice.call(arguments)\n\
-  args.unshift('[Debug]');\n\
-  if (console.debug) {\n\
-    console.debug.apply(console, args);\n\
-  } else {\n\
-    console.log.apply(console, args);\n\
-  }\n\
-}\n\
-\n\
-function info() {\n\
-  var args = slice.call(arguments)\n\
-  args.unshift('[Info]');\n\
-  if (console.info) {\n\
-    console.info.apply(console, args)\n\
-  } else {\n\
-    console.log.apply(console, args)\n\
-  }\n\
-}\n\
-\n\
-function notice() {\n\
-  var args = slice.call(arguments)\n\
-  args.unshift('[Notice]');\n\
-  if (console.notice) {\n\
-    console.notice.apply(console, args);\n\
-  } else {\n\
-    console.log.apply(console, args);\n\
-  }\n\
-}\n\
-\n\
-function warn() {\n\
-  var args = slice.call(arguments)\n\
-  args.unshift('[Warn]');\n\
-  if (console.warn) {\n\
-    console.warn.apply(console, args);\n\
-  } else {\n\
-    console.log.apply(console, args);\n\
-  }\n\
-}\n\
-\n\
-function error(err) {\n\
-  if (config[\"throw\"]) {\n\
-    /* remove first line trace which is from here */\n\
-    err.stack = err.stack.replace(/\\n\
-\\s*at\\s*\\S*/, '');\n\
-    throw err;\n\
-  } else {\n\
-    var args = ['[Error]'];\n\
-    err.name && (err.name += ':') && (args.push(err.name));\n\
-    args.push(err.message);\n\
-    console.log.apply(console, args);\n\
-  }\n\
-  return false;\n\
-}\n\
-\n\
-exports.config = function(json) {\n\
-  config = json;\n\
-}\n\
-\n\
-exports.debug = function(froms) {\n\
-  froms = slice.call(arguments).map(function(from) {\n\
-    return '[' + from + ']';\n\
-  });\n\
-\n\
-  function exDebug() {\n\
-    if (!config.output['DEBUG']) return;\n\
-    return debug.apply({}, froms.concat(slice.call(arguments)));\n\
-  }\n\
-\n\
-  exDebug.off = function() {\n\
-    return function() {}\n\
-  }\n\
-\n\
-  return exDebug;\n\
-}\n\
-\n\
-exports.info = function(froms) {\n\
-  froms = slice.call(arguments).map(function(from) {\n\
-    return '[' + from + ']';\n\
-  });\n\
-\n\
-  function exInfo() {\n\
-    if (!config.output['INFO']) return;\n\
-    return info.apply({}, froms.concat(slice.call(arguments)));\n\
-  }\n\
-\n\
-  exInfo.off = function() {\n\
-    return function() {}\n\
-  }\n\
-\n\
-  return exInfo;\n\
-}\n\
-\n\
-exports.notice = function(froms) {\n\
-  froms = slice.call(arguments).map(function(from) {\n\
-    return '[' + from + ']';\n\
-  });\n\
-\n\
-  function exNotice() {\n\
-    if (!config.output['NOTICE']) return;\n\
-    return notice.apply({}, froms.concat(slice.call(arguments)));\n\
-  }\n\
-\n\
-  exNotice.off = function() {\n\
-    return function() {}\n\
-  }\n\
-\n\
-  return exNotice;\n\
-}\n\
-\n\
-exports.warn = function(froms) {\n\
-  froms = slice.call(arguments).map(function(from) {\n\
-    return '[' + from + ']';\n\
-  });\n\
-\n\
-  function exWarn() {\n\
-    if (!config.output['WARNING']) return;\n\
-    return warn.apply({}, froms.concat(slice.call(arguments)));\n\
-  }\n\
-\n\
-  exWarn.off = function() {\n\
-    return function() {}\n\
-  }\n\
-\n\
-  return exWarn;\n\
-}\n\
-\n\
-exports.error = function(froms) {\n\
-  froms = slice.call(arguments).map(function(from) {\n\
-    return '[' + from + ']';\n\
-  });\n\
-\n\
-  function exError() {\n\
-    var err;\n\
-    if (!config.output['ERROR']) return false;\n\
-    err = new Error(slice.call(arguments).join(' '));\n\
-    err.name = froms.join(' ');\n\
-    return error(err);\n\
-  }\n\
-\n\
-  exError.off = function() {\n\
-    return function() {}\n\
-  }\n\
-\n\
-  return exError;\n\
-}\n\
-//@ sourceURL=shallker-wang-dever/util/dever.js"
-));
-require.register("shallker-wang-eventy/index.js", Function("exports, require, module",
-"module.exports = require('./lib/eventy');\n\
-//@ sourceURL=shallker-wang-eventy/index.js"
-));
-require.register("shallker-wang-eventy/lib/eventy.js", Function("exports, require, module",
-"var debug = require('dever').debug('Eventy'),\n\
-    error = require('dever').error('Eventy'),\n\
-    warn = require('dever').warn('Eventy'),\n\
-    slice = Array.prototype.slice;\n\
-\n\
-module.exports = function Eventy(object) {\n\
-  var registry = {};\n\
-\n\
-  var constructor = function () {\n\
-    return this;\n\
-  }.call(object || {});\n\
-\n\
-  /**\n\
-   * Remove the first matched callback from callbacks array\n\
-   */\n\
-  function removeCallback(callback, callbacks) {\n\
-    for (var i = 0; i < callbacks.length; i++) {\n\
-      if (callbacks[i] === callback) {\n\
-        return callbacks.splice(i, 1);\n\
-      }\n\
-    }\n\
-\n\
-    return false;\n\
-  }\n\
-\n\
-  /**\n\
-   * Listen to an event with a callback\n\
-   * @param  {String eventname}\n\
-   * @param  {Function callback}\n\
-   * @return {Object constructor || Boolean false}\n\
-   */\n\
-  constructor.on = function (eventname, callback) {\n\
-    if (typeof callback !== 'function') {\n\
-      error('callback is not a function');\n\
-      return false;\n\
-    }\n\
-\n\
-    if (typeof registry[eventname] === 'undefined') {\n\
-      registry[eventname] = [];\n\
-    }\n\
-\n\
-    registry[eventname].push(callback);\n\
-    return this;\n\
-  }\n\
-\n\
-  /**\n\
-   * Remove one callback from the event callback list\n\
-   * @param  {String eventname}\n\
-   * @param  {Function callback}\n\
-   * @return {Object constructor || Boolean false}\n\
-   */\n\
-  constructor.off = function (eventname, callback) {\n\
-    if (typeof callback !== 'function') {\n\
-      error('callback is not a function');\n\
-      return false;\n\
-    }\n\
-\n\
-    if (typeof registry[eventname] === 'undefined') {\n\
-      error('unregistered event');\n\
-      return false;\n\
-    }\n\
-\n\
-    var callbacks = registry[eventname];\n\
-\n\
-    if (callbacks.length === 0) {\n\
-      return this;\n\
-    }\n\
-\n\
-    removeCallback(callback, callbacks);\n\
-    return this;\n\
-  }\n\
-\n\
-  /**\n\
-   * Loop through all callbacks of the event and call them asynchronously\n\
-   * @param  {String eventname}\n\
-   * @param  [Arguments args]\n\
-   * @return {Object constructor}\n\
-   */\n\
-  constructor.trigger = function (eventname, args) {\n\
-    args = slice.call(arguments);\n\
-    eventname = args.shift();\n\
-\n\
-    if (typeof registry[eventname] === 'undefined') {\n\
-      return this;\n\
-    }\n\
-\n\
-    var callbacks = registry[eventname];\n\
-\n\
-    if (callbacks.length === 0) {\n\
-      return this;\n\
-    }\n\
-\n\
-    var host = this;\n\
-\n\
-    callbacks.forEach(function (callback, index) {\n\
-      setTimeout(function () {\n\
-        callback.apply(host, args);\n\
-      }, 0);\n\
-    });\n\
-\n\
-    return this;\n\
-  }\n\
-\n\
-  /**\n\
-   * Alias of trigger\n\
-   */\n\
-  constructor.emit = constructor.trigger;\n\
-\n\
-  /**\n\
-   * Loop through all callbacks of the event and call them synchronously\n\
-   * @param  {String eventname}\n\
-   * @param  [Arguments args]\n\
-   * @return {Object constructor}\n\
-   */\n\
-  constructor.triggerSync = function (eventname, args) {\n\
-    args = slice.call(arguments);\n\
-    eventname = args.shift();\n\
-\n\
-    if (typeof registry[eventname] === 'undefined') {\n\
-      return this;\n\
-    }\n\
-\n\
-    var callbacks = registry[eventname];\n\
-\n\
-    if (callbacks.length === 0) {\n\
-      return this;\n\
-    }\n\
-\n\
-    var host = this;\n\
-\n\
-    callbacks.forEach(function (callback, index) {\n\
-      callback.apply(host, args);\n\
-    });\n\
-\n\
-    return this;\n\
-  }\n\
-\n\
-  return constructor;\n\
-}\n\
-//@ sourceURL=shallker-wang-eventy/lib/eventy.js"
-));
-require.register("shallker-progress/index.js", Function("exports, require, module",
-"module.exports = require('./lib/progress');\n\
-//@ sourceURL=shallker-progress/index.js"
-));
-require.register("shallker-progress/lib/progress.js", Function("exports, require, module",
-"var eventy = require('eventy');\n\
-\n\
-module.exports = Progress;\n\
-\n\
-function Progress() {\n\
-  var progress = eventy(this);\n\
-\n\
-  progress.begin = 0;\n\
-  progress.end = 1;\n\
-  progress.duration = 1000;\n\
-  progress.done = false;\n\
-\n\
-  Object.defineProperty(progress, 'progression', {\n\
-    get: function () {\n\
-      var passed = new Date - this.startTime;\n\
-      var progression = passed / this.duration;\n\
-\n\
-      if (progression > 1) {\n\
-        progression = 1;\n\
-        this.done = true;\n\
-      }\n\
-\n\
-      progression = this.delta(progression);\n\
-\n\
-      return progression * (this.end - this.begin) + this.begin;\n\
-    }\n\
-  });\n\
-}\n\
-\n\
-Progress.prototype.delta = function (progression) {\n\
-  return progression;\n\
-}\n\
-\n\
-Progress.prototype.start = function () {\n\
-  this.startTime = new Date;\n\
-}\n\
-//@ sourceURL=shallker-progress/lib/progress.js"
-));
-require.register("shallker-delta/index.js", Function("exports, require, module",
-"module.exports = require('./lib/delta');\n\
-//@ sourceURL=shallker-delta/index.js"
-));
-require.register("shallker-delta/lib/delta.js", Function("exports, require, module",
-"exports.linear = function (progress) {\n\
-  return progress;\n\
-}\n\
-\n\
-exports.easeInQuad = function (progress) {\n\
-  return progress * progress;\n\
-}\n\
-\n\
-exports.easeOutQuad = function (progress) {\n\
-  return -progress * (progress - 2);\n\
-}\n\
-//@ sourceURL=shallker-delta/lib/delta.js"
-));
-require.register("slot-machine/index.js", Function("exports, require, module",
-"require('object-element-style');\n\
-require('object-element-selection');\n\
-\n\
-module.exports = require('./lib/slot-machine');\n\
-//@ sourceURL=slot-machine/index.js"
-));
-require.register("slot-machine/lib/slot-machine.js", Function("exports, require, module",
-"var ObjectDocument = require('object-document');\n\
-var Reel = require('./reel');\n\
-var eventy = require('eventy');\n\
-\n\
-module.exports = SlotMachine;\n\
-\n\
-function SlotMachine(el) {\n\
-  var slotMachine = eventy(this);\n\
-\n\
-  slotMachine.reels = [];\n\
-  slotMachine.reelItems = SlotMachine.reelItems;\n\
-  slotMachine.reelHeight = SlotMachine.reelHeight;\n\
-  slotMachine.el = ObjectDocument.wrapElement(el);\n\
-\n\
-  slotMachine.el.select('.reel').forEach(function (item, index) {\n\
-    var reel = new Reel(item);\n\
-\n\
-    reel.items = slotMachine.reelItems;\n\
-    reel.height = slotMachine.reelHeight;\n\
-    slotMachine.reels.push(reel);\n\
-  });\n\
-}\n\
-\n\
-SlotMachine.prototype.start = function () {\n\
-  var slotMachine = this;\n\
-  var reels = slotMachine.reels.slice();\n\
-  var accelerationComplete = [];\n\
-\n\
-  (function start() {\n\
-    if (reels.length) {\n\
-      reels.shift().spin(function () {\n\
-        accelerationComplete.push(1);\n\
-\n\
-        if (accelerationComplete.length === slotMachine.reels.length) {\n\
-          slotMachine.trigger('start-complete');\n\
-        }\n\
-      });\n\
-\n\
-      setTimeout(start, 100);\n\
-    }\n\
-  })();\n\
-}\n\
-\n\
-SlotMachine.prototype.stop = function () {\n\
-  var slotMachine = this;\n\
-  var reels = slotMachine.reels.slice();\n\
-  var decelerationComplete = [];\n\
-\n\
-  (function stop() {\n\
-    if (reels.length) {\n\
-      reels.shift().stop(function () {\n\
-        decelerationComplete.push(1);\n\
-\n\
-        if (decelerationComplete.length === slotMachine.reels.length) {\n\
-          slotMachine.trigger('stop-complete');\n\
-        }\n\
-      });\n\
-\n\
-      setTimeout(stop, 500);\n\
-    }\n\
-  })();\n\
-}\n\
-//@ sourceURL=slot-machine/lib/slot-machine.js"
-));
-require.register("slot-machine/lib/reel.js", Function("exports, require, module",
-"var Progress = require('progress');\n\
-var eventy = require('eventy');\n\
-var delta = require('delta');\n\
-\n\
-module.exports = Reel;\n\
-\n\
-function Reel(el) {\n\
-  var reel = eventy(this);\n\
-\n\
-  reel.el = el;\n\
-  reel.fps = 60;\n\
-  reel.spinning;\n\
-  reel.progress;\n\
-  reel.height = 300;\n\
-  reel.item = 0;\n\
-  reel.items = 3;\n\
-\n\
-  Object.defineProperty(reel, 'spinHeight', {\n\
-    get: function () {\n\
-      var Y = this.el.style.backgroundPosition.split(' ').pop();\n\
-\n\
-      return parseFloat(Y);\n\
-    },\n\
-\n\
-    set: function (value) {\n\
-      this.el.style.backgroundPosition = '0px '+ value + 'px';\n\
-    }\n\
-  });\n\
-\n\
-  /**\n\
-   * Setup a default value of backgroundPosition style\n\
-   */\n\
-  reel.el.style.backgroundPosition = '0px 0px';\n\
-}\n\
-\n\
-Reel.prototype.spin = function (accelerationComplete) {\n\
-  var reel = this;\n\
-  var progress = new Progress;\n\
-  var isAccelerationComplete = false;\n\
-\n\
-  progress.begin = 0;\n\
-  progress.end = Math.round(Math.random() * 5) + 20;\n\
-  progress.duration = 1000;\n\
-  progress.delta = delta.easeInQuad;\n\
-  progress.start();\n\
-  reel.progress = progress\n\
-\n\
-  reel.spinning = setInterval(function () {\n\
-    /** For Firefox */\n\
-    var positionX = '0px';\n\
-    var positionY = reel.spinHeight + reel.progress.progression + 'px';\n\
-\n\
-    reel.el.style.backgroundPosition = positionX + ' ' + positionY;\n\
-\n\
-    /**\n\
-     * Trigger accelerationComplete for the first time\n\
-     */\n\
-    if (!isAccelerationComplete && progress.done) {\n\
-      isAccelerationComplete = true;\n\
-      accelerationComplete && accelerationComplete();\n\
-    }\n\
-  }, 1000 / this.fps);\n\
-}\n\
-\n\
-Reel.prototype.stop = function (decelerationComplete) {\n\
-  var reel = this;\n\
-\n\
-  /**\n\
-   * Stop the spinning first\n\
-   */\n\
-  clearInterval(reel.spinning);\n\
-\n\
-  /**\n\
-   * Average height of items\n\
-   */\n\
-  var itemHeight = reel.height / reel.items;\n\
-  \n\
-  /**\n\
-   * How many rounds we've ran\n\
-   */\n\
-  var laps = Math.floor(reel.spinHeight / reel.height);\n\
-\n\
-  /**\n\
-   * How long we ran in the last round\n\
-   */\n\
-  var remainder = reel.spinHeight % reel.height;\n\
-\n\
-  /**\n\
-   * The nth item in the last round\n\
-   */\n\
-  var nth = Math.ceil(remainder / itemHeight);\n\
-\n\
-  /**\n\
-   * Let's spin the reel to the nth item\n\
-   */\n\
-  var end = (laps * reel.height) + (nth * itemHeight);\n\
-\n\
-  reel.el.style.backgroundPosition = '0px' + ' ' + end + 'px';\n\
-\n\
-  /**\n\
-   * Turn the nth in descend order because we're spinning in reverse mode\n\
-   */\n\
-  reel.item = this.items - (nth - 1);\n\
-\n\
-  decelerationComplete && decelerationComplete();\n\
-}\n\
-//@ sourceURL=slot-machine/lib/reel.js"
-));
+require.register("component-domify/index.js", function(exports, require, module){
+
+/**
+ * Expose `parse`.
+ */
+
+module.exports = parse;
+
+/**
+ * Wrap map from jquery.
+ */
+
+var map = {
+  option: [1, '<select multiple="multiple">', '</select>'],
+  optgroup: [1, '<select multiple="multiple">', '</select>'],
+  legend: [1, '<fieldset>', '</fieldset>'],
+  thead: [1, '<table>', '</table>'],
+  tbody: [1, '<table>', '</table>'],
+  tfoot: [1, '<table>', '</table>'],
+  colgroup: [1, '<table>', '</table>'],
+  caption: [1, '<table>', '</table>'],
+  tr: [2, '<table><tbody>', '</tbody></table>'],
+  td: [3, '<table><tbody><tr>', '</tr></tbody></table>'],
+  th: [3, '<table><tbody><tr>', '</tr></tbody></table>'],
+  col: [2, '<table><tbody></tbody><colgroup>', '</colgroup></table>'],
+  _default: [0, '', '']
+};
+
+/**
+ * Parse `html` and return the children.
+ *
+ * @param {String} html
+ * @return {Array}
+ * @api private
+ */
+
+function parse(html) {
+  if ('string' != typeof html) throw new TypeError('String expected');
+
+  html = html.replace(/^\s+|\s+$/g, ''); // Remove leading/trailing whitespace
+
+  // tag name
+  var m = /<([\w:]+)/.exec(html);
+  if (!m) return document.createTextNode(html);
+  var tag = m[1];
+
+  // body support
+  if (tag == 'body') {
+    var el = document.createElement('html');
+    el.innerHTML = html;
+    return el.removeChild(el.lastChild);
+  }
+
+  // wrap map
+  var wrap = map[tag] || map._default;
+  var depth = wrap[0];
+  var prefix = wrap[1];
+  var suffix = wrap[2];
+  var el = document.createElement('div');
+  el.innerHTML = prefix + html + suffix;
+  while (depth--) el = el.lastChild;
+
+  // Note: when moving children, don't rely on el.children
+  // being 'live' to support Polymer's broken behaviour.
+  // See: https://github.com/component/domify/pull/23
+  if (1 == el.children.length) {
+    return el.removeChild(el.children[0]);
+  }
+
+  var fragment = document.createDocumentFragment();
+  while (el.children.length) {
+    fragment.appendChild(el.removeChild(el.children[0]));
+  }
+
+  return fragment;
+}
+
+});
+require.register("object-dom-object-element/index.js", function(exports, require, module){
+module.exports = require('./lib/object-element');
+
+});
+require.register("object-dom-object-element/lib/events.js", function(exports, require, module){
+var slice = Array.prototype.slice;
+
+module.exports = Events;
+
+function Events() {}
+
+Events.prototype.on = function (eventname, callback) {
+  if (typeof this.eventsRegistry[eventname] === 'undefined') {
+    this.eventsRegistry[eventname] = [];
+  }
+
+  return this.eventsRegistry[eventname].push(callback);
+}
+
+Events.prototype.off = function (eventname, callback) {
+  var i, callbacks = this.eventsRegistry[eventname];
+
+  if (typeof callbacks === 'undefined') {
+    return false;
+  }
+
+  for (i = 0; i < callbacks.length; i++) {
+    if (callbacks[i] === callback) {
+      return callbacks.splice(i, 1);
+    }
+  }
+
+  return false;
+}
+
+Events.prototype.trigger = function (eventname, args) {
+  args = slice.call(arguments);
+  eventname = args.shift();
+
+  var callbacks = this.eventsRegistry[eventname];
+  var host = this;
+
+  if (typeof callbacks === 'undefined') {
+    return this;
+  }
+
+  callbacks.forEach(function (callback, index) {
+    setTimeout(function () {
+      callback.apply(host, args);
+    }, 0);
+  });
+
+  return this;
+}
+
+Events.prototype.triggerSync = function (eventname, args) {
+  args = slice.call(arguments);
+  eventname = args.shift();
+
+  var callbacks = this.eventsRegistry[eventname];
+  var host = this;
+
+  if (typeof callbacks === 'undefined') {
+    return this;
+  }
+
+  callbacks.forEach(function (callback, index) {
+    callback.apply(host, args);
+  });
+
+  return this;
+}
+
+});
+require.register("object-dom-object-element/lib/object-element.js", function(exports, require, module){
+var domify = require('domify');
+var Events = require('./events');
+var slice = Array.prototype.slice;
+var supportProto = Object.getPrototypeOf({__proto__: null}) === null;
+
+module.exports = ObjectElement;
+
+function ObjectElement(element) {
+  Events.apply(this, arguments);
+
+  var eventsRegistry = {};
+
+  Object.defineProperty(this, 'eventsRegistry', {
+    get: function () {
+      return eventsRegistry
+    }
+  });
+
+  this.element = element;
+}
+
+if (supportProto) {
+  ObjectElement.prototype.__proto__ = Events.prototype;
+} else {
+  ObjectElement.prototype = Object.create(Events.prototype);
+}
+
+ObjectElement.prototype.defineProperty = function (name, defines) {
+  Object.defineProperty(this, name, defines);
+}
+
+ObjectElement.prototype.defineProperty('OBJECT_ELEMENT', {
+  get: function () {
+    return 1;
+  }
+});
+
+/**
+ * Shortcut to .element.id
+ */
+ObjectElement.prototype.defineProperty('id', {
+  get: function () {
+    return this.element.id;
+  },
+
+  set: function (value) {
+    this.element.id = value;
+  }
+});
+
+/**
+ * Get or set textContent of the element
+ */
+ObjectElement.prototype.defineProperty('text', {
+  get: function () {
+    return this.element.textContent;
+  },
+
+  set: function (value) {
+    this.element.textContent = value;
+  }
+});
+
+/**
+ * Get or set innerHTML of the element
+ */
+ObjectElement.prototype.defineProperty('html', {
+  get: function () {
+    return this.element.innerHTML;
+  },
+
+  set: function (htmlString) {
+    this.element.innerHTML = '';
+    this.element.appendChild(domify(htmlString));
+  }
+});
+
+/**
+ * Call a function on this element
+ * @param  {Function callback}
+ * @return {Null}
+ */
+ObjectElement.prototype.tie = function (callback) {
+  callback.call(this, this.element);
+}
+
+});
+require.register("object-dom-object-div-element/index.js", function(exports, require, module){
+module.exports = require('./lib/object-div-element');
+
+});
+require.register("object-dom-object-div-element/lib/object-div-element.js", function(exports, require, module){
+var ObjectElement = require('object-element');
+var supportProto = Object.getPrototypeOf({__proto__: null}) === null;
+
+module.exports = ObjectDivElement;
+
+function ObjectDivElement(element) {
+  element = element || document.createElement('div');
+  ObjectElement.call(this, element);
+}
+
+if (supportProto) {
+  ObjectDivElement.prototype.__proto__ = ObjectElement.prototype;
+} else {
+  ObjectDivElement.prototype = Object.create(ObjectElement.prototype);
+}
+
+ObjectDivElement.prototype.defineProperty('tag', {
+  get: function () {
+    return 'div';
+  }
+});
+
+});
+require.register("object-dom-object-document/index.js", function(exports, require, module){
+module.exports = require('./lib/object-document');
+
+});
+require.register("object-dom-object-document/lib/object-document.js", function(exports, require, module){
+var ObjectElement = require('object-element');
+var ObjectDivElement = require('object-div-element');
+var slice = Array.prototype.slice;
+
+module.exports = ObjectDocument;
+
+function ObjectDocument() {
+
+}
+
+/**
+ * Wrap HTMLElement with ObjectElement
+ * @param  {HTMLElement | ObjectElement element}
+ * @return {ObjectElement}
+ */
+ObjectDocument.wrapElement = function (element) {
+  return element.OBJECT_ELEMENT ? element : new ObjectElement(element);
+}
+
+/**
+ * Loop through HTMLElements and wrap each of them with ObjectElement
+ * @param  {Array elements}
+ * @return {Array}
+ */
+ObjectDocument.wrapElements = function (elements) {
+  elements = slice.call(elements);
+
+  return elements.map(function (element, i) {
+    return ObjectDocument.wrapElement(element);
+  });
+}
+
+ObjectDocument.createElement = function (tag) {
+  if (tag) {
+    return this.wrapElement(document.createElement(tag));
+  } else {
+    return new ObjectDivElement;
+  }
+}
+
+});
+require.register("object-dom-object-element-style/index.js", function(exports, require, module){
+module.exports = require('./lib/object-element-style');
+
+});
+require.register("object-dom-object-element-style/lib/object-element-style.js", function(exports, require, module){
+var ObjectElement = require('object-element');
+
+/**
+ * Shortcut to .element.style
+ */
+ObjectElement.prototype.defineProperty('style', {
+  get: function () {
+    return this.element.style;
+  }
+});
+
+/**
+ * Get element's visibility state
+ */
+ObjectElement.prototype.defineProperty('hidden', {
+  get: function () {
+    return this.element.style.display === 'none' ? true : false;
+  }
+});
+
+/**
+ * Get or set element's opacity
+ */
+ObjectElement.prototype.defineProperty('opacity', {
+  get: function () {
+    return parseInt(this.element.style.opacity, 10);
+  },
+
+  set: function (value) {
+    this.element.style.opacity = value;
+  }
+});
+
+/**
+ * Get or set element's width
+ */
+ObjectElement.prototype.defineProperty('width', {
+  get: function () {
+    return this.element.offsetWidth;
+  },
+
+  set: function (value) {
+    this.style.width = value + 'px';
+  }
+});
+
+/**
+ * Get or set element's height
+ */
+ObjectElement.prototype.defineProperty('height', {
+  get: function () {
+    return this.element.offsetHeight;
+  },
+
+  set: function (value) {
+    this.style.height = value + 'px';
+  }
+});
+
+/**
+ * Display element in DOM
+ */
+ObjectElement.prototype.show = function () {
+  if (this.element.style.display === 'none') {
+    this.element.style.display = '';
+  } else {
+    this.element.style.display = 'block';
+  }
+}
+
+ObjectElement.prototype.displayBlock = function () {
+  this.element.style.display = 'block';  
+}
+
+ObjectElement.prototype.displayNone = function () {
+  this.element.style.display = 'none';  
+}
+
+/**
+ * Hide element in DOM
+ */
+ObjectElement.prototype.hide = function () {
+  this.element.style.display = 'none';
+}
+
+/**
+ * Get or set element's tyle
+ * @param  [String name]
+ * @param  [String value]
+ * @return {[type]}
+ */
+ObjectElement.prototype.css = function (name, value) {
+  if (arguments.length === 0) {
+    return this.element.style;
+  }
+
+  if (arguments.length === 1) {
+    return this.element.style[name];
+  }
+
+  if (arguments.length === 2) {
+    this.style[name] = value;
+  }
+}
+
+ObjectElement.prototype.hasClass = function (name) {
+  return this.element.classList.contains(name);
+}
+
+ObjectElement.prototype.addClass = function (name) {
+  this.triggerSync('add-class', name);
+  this.element.classList.add(name);
+  this.trigger('added-class', name);
+}
+
+ObjectElement.prototype.removeClass = function (name) {
+  this.triggerSync('remove-class', name);
+  this.element.classList.remove(name);
+  this.trigger('removed-class', name);
+}
+
+ObjectElement.prototype.toggleClass = function (name) {
+  this.triggerSync('toggle-class', name);
+
+  if (this.hasClass(name)) {
+    this.removeClass(name);
+  } else {
+    this.addClass(name);
+  }
+
+  this.trigger('toggled-class', name);
+}
+
+});
+require.register("object-dom-object-element-selection/index.js", function(exports, require, module){
+module.exports = require('./lib/object-element-selection');
+
+});
+require.register("object-dom-object-element-selection/lib/object-element-selection.js", function(exports, require, module){
+var ObjectElement = require('object-element');
+var ObjectDocument = require('object-document');
+var slice = Array.prototype.slice;
+
+/**
+ * Match the element against the selector
+ * @param  {ObjectElement | Element element}
+ * @param  {String selector}
+ * @return {Boolean}
+ */
+function match(element, selector) {
+  element = element.OBJECT_ELEMENT ? element.element : element;
+
+  var matchesSelector = element.webkitMatchesSelector 
+    || element.mozMatchesSelector 
+    || element.oMatchesSelector 
+    || element.matchesSelector;
+
+  return matchesSelector.call(element, selector);
+}
+
+/**
+ * Loop through all elements and match theme against th selector
+ * @param  {Array elements}
+ * @param  {String selector}
+ * @return {Array elements}
+ */
+function matchAll(elements, selector) {
+  return elements.filter(function (element, i) {
+    return match(element, selector);
+  });
+}
+
+/**
+ * Loop through each element and return the first matched element
+ * @param  {Array elements}
+ * @param  {String selector}
+ * @return {Element | Null}
+ */
+function matchFirst(elements, selector) {
+  var i;
+
+  for (i = 0; i < elements.length; i++) {
+    if (match(elements[i], selector)) {
+      return elements[i];
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Loop through each element and return the last matched element
+ * @param  {Array elements}
+ * @param  {String selector}
+ * @return {Element | Null}
+ */
+function matchLast(elements, selector) {
+  /**
+   * Clone an array of the elements reference first
+   */
+  return matchFirst(elements.slice().reverse(), selector);
+}
+
+/**
+ * Return an array containing ELEMENT_NODE from ndoes
+ * @param  {NodeList nodes}
+ * @return {Array}
+ */
+function elementNodesOf(nodes) {
+  return slice.call(nodes).map(function (node, i) {
+    if (node.nodeType === 1) {
+      return node;
+    }
+  });
+}
+
+ObjectElement.prototype.defineProperty('ancestors', {
+  get: function () {
+    var ancestors = [],
+        parent = this.parent;
+
+    while (parent && (parent.nodeType !== parent.DOCUMENT_NODE)) {
+      ancestors.push(parent);
+      parent = parent.parentNode;
+    }
+
+    return ancestors;
+  }
+});
+
+ObjectElement.prototype.defineProperty('parent', {
+  get: function () {
+    return ObjectDocument.wrapElement(this.element.parentNode);
+  }
+});
+
+ObjectElement.prototype.defineProperty('firstSibling', {
+  get: function () {
+    return ObjectDocument.wrapElement(this.parent).firstChild;
+  }
+});
+
+ObjectElement.prototype.defineProperty('lastSibling', {
+  get: function () {
+    return ObjectDocument.wrapElement(this.parent).lastChild;
+  }
+});
+
+ObjectElement.prototype.defineProperty('prevSibling', {
+  get: function () {
+    var prev;
+
+    if ('previousElementSibling' in this.element) {
+      prev = this.element.previousElementSibling;
+    } else {
+      prev = this.element.previousSibling;
+
+      while (prev && prev.nodeType !== prev.ELEMENT_NODE) {
+        prev = prev.previousSibling;
+      }
+    }
+
+    return prev ? ObjectDocument.wrapElement(prev) : null;
+  }
+});
+
+ObjectElement.prototype.defineProperty('nextSibling', {
+  get: function () {
+    var next;
+    if ('nextElementSibling' in this.element) {
+      next = this.element.nextElementSibling;
+    } else {
+      next = this.element.nextSibling;
+
+      while (next && next.nodeType !== next.ELEMENT_NODE) {
+        next = next.nextSibling;
+      }
+    }
+
+    return next ? ObjectDocument.wrapElement(next) : null;
+  }
+});
+
+ObjectElement.prototype.defineProperty('prevSiblings', {
+  get: function () {
+    var prevs = [];
+    var prev = this.prevSibling;
+
+    while (prev) {
+      prevs.push(prev);
+      prev = prev.prevSibling;
+    }
+
+    return prevs.reverse();
+  }
+});
+
+ObjectElement.prototype.defineProperty('nextSiblings', {
+  get: function () {
+    var nexts = [];
+    var next = this.nextSibling;
+
+    while (next) {
+      nexts.push(next);
+      next = next.nextSibling;
+    }
+
+    return nexts;
+  }
+});
+
+ObjectElement.prototype.defineProperty('siblings', {
+  get: function () {
+    return this.prevSiblings.concat(this.nextSiblings);
+  }
+});
+
+ObjectElement.prototype.defineProperty('firstChild', {
+  get: function () {
+    var first;
+
+    if ('firstElementChild' in this.element) {
+      first = this.element.firstElementChild;
+    } else {
+      first = this.element.firstChild;
+
+      while (first && first.nodeType !== first.ELEMENT_NODE) {
+        first = first.nextSibling;
+      }
+    }
+
+    return first ? ObjectDocument.wrapElement(first) : null;
+  }
+});
+
+ObjectElement.prototype.defineProperty('lastChild', {
+  get: function () {
+    var last;
+
+    if ('lastElementChild' in this.element) {
+      last = this.element.lastElementChild;
+    } else {
+      last = this.element.lastChild;
+
+      while (last && last.nodeType !== last.ELEMENT_NODE) {
+        last = last.previousSibling;
+      }
+    }
+
+    return last ? ObjectDocument.wrapElement(last) : null;
+  }
+});
+
+/**
+ * Get the fist level child elements
+ * @param  {[type] element}
+ * @return {[type]}
+ */
+ObjectElement.prototype.defineProperty('children', {
+  get: function () {
+    var children;
+
+    if ('children' in this.element) {
+      children = slice.call(this.element.children);
+    } else {
+      children = slice.call(this.element.childNodes).map(function (node, i) {
+        if (node.nodeType === node.ELEMENT_NODE) {
+          return node;
+        }
+      });
+    }
+
+    if (children.length === 0) {
+      return children;
+    }
+
+    return ObjectDocument.wrapElements(children);
+  }
+});
+
+/** #TODO */
+ObjectElement.prototype.defineProperty('descendants', {
+  get: function () {
+
+  }
+});
+
+/**
+ * Matching the element against selector
+ * @param  {String selector}
+ * @return {Boolean}
+ */
+ObjectElement.prototype.match = function (selector) {
+  var matchesSelector = this.element.matchesSelector 
+    || this.element.webkitMatchesSelector 
+    || this.element.mozMatchesSelector 
+    || this.element.oMatchesSelector;
+
+  return matchesSelector.call(this.element, selector);
+}
+
+/** Selection methods */
+
+ObjectElement.prototype.selectFirstSibling = function (selector) {
+  
+}
+
+ObjectElement.prototype.selectLastSibling = function (selector) {
+  
+}
+
+ObjectElement.prototype.selectPrevSibling = function (selector) {
+  var prev = matchLast(this.prevSiblings, selector);
+
+  if (prev === null) {
+    return prev;
+  }
+
+  return ObjectDocument.wrapElement(prev);
+}
+
+ObjectElement.prototype.selectNextSibling = function (selector) {
+  var next = matchFirst(this.nextSiblings, selector);
+
+  if (next === null) {
+    return next;
+  }
+
+  return ObjectDocument.wrapElement(next);
+}
+
+/**
+ * Alias of .selectPrevSibling()
+ */
+ObjectElement.prototype.prev = ObjectElement.prototype.selectPrevSibling;
+
+/**
+ * Alias of .selectNextSibling()
+ */
+ObjectElement.prototype.next = ObjectElement.prototype.selectNextSibling;
+
+ObjectElement.prototype.selectPrevSiblings = function (selector) {
+  var prevs = matchAll(this.prevSiblings, selector);
+
+  if (prevs.length === 0) {
+    return prevs;
+  }
+
+  return ObjectDocument.wrapElements(prevs);
+}
+
+ObjectElement.prototype.selectNextSiblings = function (selector) {
+  var nexts = matchAll(this.nextSiblings, selector);
+
+  if (nexts.length === 0) {
+    return nexts;
+  }
+
+  return ObjectDocument.wrapElements(nexts);
+}
+
+ObjectElement.prototype.selectSiblings = function (selector) {
+  return this.selectPrevSiblings(selector).concat(this.selectNextSiblings(selector));
+}
+
+/**
+ * Select element's child elements by selector or not
+ * @param  {String selector}
+ * @return {Array}
+ */
+ObjectElement.prototype.selectChildren = function (selector) {
+  var children = this.children;
+
+  if (children.length && selector) {
+    children = matchAll(children, selector);
+  }
+
+  if (children.length === 0) {
+    return children;
+  }
+
+  return ObjectDocument.wrapElements(children);
+}
+
+/**
+ * Get first child element by selector or not
+ * @param  {String selector}
+ * @return {ObjectElement}
+ */
+ObjectElement.prototype.selectFirstChild = function (selector) {
+  return ObjectDocument.wrapElement(matchFirst(this.children, selector));
+}
+
+/**
+ * Get last child element by the selector or not
+ * @param  {String selector}
+ * @return {ObjectElement}
+ */
+ObjectElement.prototype.selectLastChild = function (selector) {
+  return ObjectDocument.wrapElement(matchLast(this.children, selector));
+}
+
+/**
+ * Select all elements descended from the element that match the selector
+ * @param  {String selector}
+ * @return {Array}
+ */
+ObjectElement.prototype.select = function (selector) {
+  var nodeList = slice.call(this.element.querySelectorAll(selector));
+
+  if (nodeList.length === 0) {
+    return [];
+  }
+
+  return ObjectDocument.wrapElements(nodeList);
+}
+
+/**
+ * Select the first element descended from the element that matchs the selector
+ * @param  {String selector}
+ * @return {ObjectElement | null}
+ */
+ObjectElement.prototype.selectFirst = function (selector) {
+  var element = this.element.querySelector(selector);
+
+  if (element === null) {
+    return null;
+  }
+
+  return ObjectDocument.wrapElement(element);
+}
+
+/**
+ * Select the last element descended from the element that matchs the selector
+ * @param  {String selector}
+ * @return {ObjectElement | null}
+ */
+ObjectElement.prototype.selectLast = function (selector) {
+  var elements = this.select(selector);
+
+  if (elements.length === 0) {
+    return null;
+  }
+
+  return ObjectDocument.wrapElement(elements.pop());
+}
+
+});
+require.register("polyfill-Array.prototype.map/component.js", function(exports, require, module){
+require('./Array.prototype.map');
+
+});
+require.register("polyfill-Array.prototype.map/Array.prototype.map.js", function(exports, require, module){
+// @from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map
+// Production steps of ECMA-262, Edition 5, 15.4.4.19
+// Reference: http://es5.github.com/#x15.4.4.19
+if (!Array.prototype.map) {
+  Array.prototype.map = function(callback, thisArg) {
+
+    var T, A, k;
+
+    if (this == null) {
+      throw new TypeError(" this is null or not defined");
+    }
+
+    // 1. Let O be the result of calling ToObject passing the |this| value as the argument.
+    var O = Object(this);
+
+    // 2. Let lenValue be the result of calling the Get internal method of O with the argument "length".
+    // 3. Let len be ToUint32(lenValue).
+    var len = O.length >>> 0;
+
+    // 4. If IsCallable(callback) is false, throw a TypeError exception.
+    // See: http://es5.github.com/#x9.11
+    if (typeof callback !== "function") {
+      throw new TypeError(callback + " is not a function");
+    }
+
+    // 5. If thisArg was supplied, let T be thisArg; else let T be undefined.
+    if (thisArg) {
+      T = thisArg;
+    }
+
+    // 6. Let A be a new array created as if by the expression new Array(len) where Array is
+    // the standard built-in constructor with that name and len is the value of len.
+    A = new Array(len);
+
+    // 7. Let k be 0
+    k = 0;
+
+    // 8. Repeat, while k < len
+    while(k < len) {
+
+      var kValue, mappedValue;
+
+      // a. Let Pk be ToString(k).
+      //   This is implicit for LHS operands of the in operator
+      // b. Let kPresent be the result of calling the HasProperty internal method of O with argument Pk.
+      //   This step can be combined with c
+      // c. If kPresent is true, then
+      if (k in O) {
+
+        // i. Let kValue be the result of calling the Get internal method of O with argument Pk.
+        kValue = O[ k ];
+
+        // ii. Let mappedValue be the result of calling the Call internal method of callback
+        // with T as the this value and argument list containing kValue, k, and O.
+        mappedValue = callback.call(T, kValue, k, O);
+
+        // iii. Call the DefineOwnProperty internal method of A with arguments
+        // Pk, Property Descriptor {Value: mappedValue, : true, Enumerable: true, Configurable: true},
+        // and false.
+
+        // In browsers that support Object.defineProperty, use the following:
+        // Object.defineProperty(A, Pk, { value: mappedValue, writable: true, enumerable: true, configurable: true });
+
+        // For best browser support, use the following:
+        A[ k ] = mappedValue;
+      }
+      // d. Increase k by 1.
+      k++;
+    }
+
+    // 9. return A
+    return A;
+  };      
+}
+
+});
+require.register("shallker-array-forEach-shim/index.js", function(exports, require, module){
+/*
+  @from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach
+*/
+if (!Array.prototype.forEach) {
+    Array.prototype.forEach = function (fn, scope) {
+        'use strict';
+        var i, len;
+        for (i = 0, len = this.length; i < len; ++i) {
+            if (i in this) {
+                fn.call(scope, this[i], i, this);
+            }
+        }
+    };
+}
+
+});
+require.register("shallker-wang-dever/component.js", function(exports, require, module){
+require('Array.prototype.map');
+require('array-foreach-shim');
+
+exports = module.exports = require('./util/dever');
+
+exports.version = '2.0.1';
+
+});
+require.register("shallker-wang-dever/util/dever.js", function(exports, require, module){
+/* Log level */
+/*
+  0 EMERGENCY system is unusable
+  1 ALERT action must be taken immediately
+  2 CRITICAL the system is in critical condition
+  3 ERROR error condition
+  4 WARNING warning condition
+  5 NOTICE a normal but significant condition
+  6 INFO a purely informational message
+  7 DEBUG messages to debug an application
+*/
+
+var slice = Array.prototype.slice,
+    dev,
+    pro,
+    config,
+    level = {
+      "0": "EMERGENCY",
+      "1": "ALERT",
+      "2": "CRITICAL",
+      "3": "ERROR",
+      "4": "WARNING",
+      "5": "NOTICE",
+      "6": "INFO",
+      "7": "DEBUG"
+    };
+
+function readFileJSON(path) {
+  var json = require('fs').readFileSync(path, {encoding: 'utf8'});
+  return JSON.parse(json);
+}
+
+function loadConfig(name) {
+  return readFileJSON(process.env.PWD + '/' + name);
+}
+
+function defaultConfig() {
+  return {
+    "output": {
+      "EMERGENCY": false,
+      "ALERT": false,
+      "CRITICAL": false,
+      "ERROR": false,
+      "WARNING": true,
+      "NOTICE": true,
+      "INFO": true,
+      "DEBUG": false 
+    },
+    "throw": false
+  }
+}
+
+try { dev = loadConfig('dev.json'); } catch (e) {}
+try { pro = loadConfig('pro.json'); } catch (e) {}
+
+config = dev || pro || defaultConfig();
+
+function log() {
+  console.log.apply(console, slice.call(arguments));
+}
+
+function debug() {
+  var args = slice.call(arguments)
+  args.unshift('[Debug]');
+  if (console.debug) {
+    console.debug.apply(console, args);
+  } else {
+    console.log.apply(console, args);
+  }
+}
+
+function info() {
+  var args = slice.call(arguments)
+  args.unshift('[Info]');
+  if (console.info) {
+    console.info.apply(console, args)
+  } else {
+    console.log.apply(console, args)
+  }
+}
+
+function notice() {
+  var args = slice.call(arguments)
+  args.unshift('[Notice]');
+  if (console.notice) {
+    console.notice.apply(console, args);
+  } else {
+    console.log.apply(console, args);
+  }
+}
+
+function warn() {
+  var args = slice.call(arguments)
+  args.unshift('[Warn]');
+  if (console.warn) {
+    console.warn.apply(console, args);
+  } else {
+    console.log.apply(console, args);
+  }
+}
+
+function error(err) {
+  if (config["throw"]) {
+    /* remove first line trace which is from here */
+    err.stack = err.stack.replace(/\n\s*at\s*\S*/, '');
+    throw err;
+  } else {
+    var args = ['[Error]'];
+    err.name && (err.name += ':') && (args.push(err.name));
+    args.push(err.message);
+    console.log.apply(console, args);
+  }
+  return false;
+}
+
+exports.config = function(json) {
+  config = json;
+}
+
+exports.debug = function(froms) {
+  froms = slice.call(arguments).map(function(from) {
+    return '[' + from + ']';
+  });
+
+  function exDebug() {
+    if (!config.output['DEBUG']) return;
+    return debug.apply({}, froms.concat(slice.call(arguments)));
+  }
+
+  exDebug.off = function() {
+    return function() {}
+  }
+
+  return exDebug;
+}
+
+exports.info = function(froms) {
+  froms = slice.call(arguments).map(function(from) {
+    return '[' + from + ']';
+  });
+
+  function exInfo() {
+    if (!config.output['INFO']) return;
+    return info.apply({}, froms.concat(slice.call(arguments)));
+  }
+
+  exInfo.off = function() {
+    return function() {}
+  }
+
+  return exInfo;
+}
+
+exports.notice = function(froms) {
+  froms = slice.call(arguments).map(function(from) {
+    return '[' + from + ']';
+  });
+
+  function exNotice() {
+    if (!config.output['NOTICE']) return;
+    return notice.apply({}, froms.concat(slice.call(arguments)));
+  }
+
+  exNotice.off = function() {
+    return function() {}
+  }
+
+  return exNotice;
+}
+
+exports.warn = function(froms) {
+  froms = slice.call(arguments).map(function(from) {
+    return '[' + from + ']';
+  });
+
+  function exWarn() {
+    if (!config.output['WARNING']) return;
+    return warn.apply({}, froms.concat(slice.call(arguments)));
+  }
+
+  exWarn.off = function() {
+    return function() {}
+  }
+
+  return exWarn;
+}
+
+exports.error = function(froms) {
+  froms = slice.call(arguments).map(function(from) {
+    return '[' + from + ']';
+  });
+
+  function exError() {
+    var err;
+    if (!config.output['ERROR']) return false;
+    err = new Error(slice.call(arguments).join(' '));
+    err.name = froms.join(' ');
+    return error(err);
+  }
+
+  exError.off = function() {
+    return function() {}
+  }
+
+  return exError;
+}
+
+});
+require.register("shallker-wang-eventy/index.js", function(exports, require, module){
+module.exports = require('./lib/eventy');
+
+});
+require.register("shallker-wang-eventy/lib/eventy.js", function(exports, require, module){
+var debug = require('dever').debug('Eventy'),
+    error = require('dever').error('Eventy'),
+    warn = require('dever').warn('Eventy'),
+    slice = Array.prototype.slice;
+
+module.exports = function Eventy(object) {
+  var registry = {};
+
+  var constructor = function () {
+    return this;
+  }.call(object || {});
+
+  /**
+   * Remove the first matched callback from callbacks array
+   */
+  function removeCallback(callback, callbacks) {
+    for (var i = 0; i < callbacks.length; i++) {
+      if (callbacks[i] === callback) {
+        return callbacks.splice(i, 1);
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Listen to an event with a callback
+   * @param  {String eventname}
+   * @param  {Function callback}
+   * @return {Object constructor || Boolean false}
+   */
+  constructor.on = function (eventname, callback) {
+    if (typeof callback !== 'function') {
+      error('callback is not a function');
+      return false;
+    }
+
+    if (typeof registry[eventname] === 'undefined') {
+      registry[eventname] = [];
+    }
+
+    registry[eventname].push(callback);
+    return this;
+  }
+
+  /**
+   * Remove one callback from the event callback list
+   * @param  {String eventname}
+   * @param  {Function callback}
+   * @return {Object constructor || Boolean false}
+   */
+  constructor.off = function (eventname, callback) {
+    if (typeof callback !== 'function') {
+      error('callback is not a function');
+      return false;
+    }
+
+    if (typeof registry[eventname] === 'undefined') {
+      error('unregistered event');
+      return false;
+    }
+
+    var callbacks = registry[eventname];
+
+    if (callbacks.length === 0) {
+      return this;
+    }
+
+    removeCallback(callback, callbacks);
+    return this;
+  }
+
+  /**
+   * Loop through all callbacks of the event and call them asynchronously
+   * @param  {String eventname}
+   * @param  [Arguments args]
+   * @return {Object constructor}
+   */
+  constructor.trigger = function (eventname, args) {
+    args = slice.call(arguments);
+    eventname = args.shift();
+
+    if (typeof registry[eventname] === 'undefined') {
+      return this;
+    }
+
+    var callbacks = registry[eventname];
+
+    if (callbacks.length === 0) {
+      return this;
+    }
+
+    var host = this;
+
+    callbacks.forEach(function (callback, index) {
+      setTimeout(function () {
+        callback.apply(host, args);
+      }, 0);
+    });
+
+    return this;
+  }
+
+  /**
+   * Alias of trigger
+   */
+  constructor.emit = constructor.trigger;
+
+  /**
+   * Loop through all callbacks of the event and call them synchronously
+   * @param  {String eventname}
+   * @param  [Arguments args]
+   * @return {Object constructor}
+   */
+  constructor.triggerSync = function (eventname, args) {
+    args = slice.call(arguments);
+    eventname = args.shift();
+
+    if (typeof registry[eventname] === 'undefined') {
+      return this;
+    }
+
+    var callbacks = registry[eventname];
+
+    if (callbacks.length === 0) {
+      return this;
+    }
+
+    var host = this;
+
+    callbacks.forEach(function (callback, index) {
+      callback.apply(host, args);
+    });
+
+    return this;
+  }
+
+  return constructor;
+}
+
+});
+require.register("shallker-progress/index.js", function(exports, require, module){
+module.exports = require('./lib/progress');
+
+});
+require.register("shallker-progress/lib/progress.js", function(exports, require, module){
+var eventy = require('eventy');
+
+module.exports = Progress;
+
+function Progress() {
+  var progress = eventy(this);
+
+  progress.begin = 0;
+  progress.end = 1;
+  progress.duration = 1000;
+  progress.done = false;
+
+  Object.defineProperty(progress, 'progression', {
+    get: function () {
+      var passed = new Date - this.startTime;
+      var progression = passed / this.duration;
+
+      if (progression > 1) {
+        progression = 1;
+        this.done = true;
+      }
+
+      progression = this.delta(progression);
+
+      return progression * (this.end - this.begin) + this.begin;
+    }
+  });
+}
+
+Progress.prototype.delta = function (progression) {
+  return progression;
+}
+
+Progress.prototype.start = function () {
+  this.startTime = new Date;
+}
+
+});
+require.register("shallker-delta/index.js", function(exports, require, module){
+module.exports = require('./lib/delta');
+
+});
+require.register("shallker-delta/lib/delta.js", function(exports, require, module){
+exports.linear = function (progress) {
+  return progress;
+}
+
+exports.easeInQuad = function (progress) {
+  return progress * progress;
+}
+
+exports.easeOutQuad = function (progress) {
+  return -progress * (progress - 2);
+}
+
+});
+require.register("slot-machine/index.js", function(exports, require, module){
+require('object-element-style');
+require('object-element-selection');
+
+module.exports = require('./lib/slot-machine');
+
+});
+require.register("slot-machine/lib/slot-machine.js", function(exports, require, module){
+var ObjectDocument = require('object-document');
+var Reel = require('./reel');
+var eventy = require('eventy');
+
+module.exports = SlotMachine;
+
+function SlotMachine(el) {
+  var slotMachine = eventy(this);
+
+  slotMachine.reels = [];
+  slotMachine.reelItems = SlotMachine.reelItems;
+  slotMachine.reelHeight = SlotMachine.reelHeight;
+  slotMachine.el = ObjectDocument.wrapElement(el);
+
+  slotMachine.el.select('.reel').forEach(function (item, index) {
+    var reel = new Reel(item);
+
+    reel.items = slotMachine.reelItems;
+    reel.height = slotMachine.reelHeight;
+    slotMachine.reels.push(reel);
+  });
+}
+
+SlotMachine.prototype.start = function () {
+  var slotMachine = this;
+  var reels = slotMachine.reels.slice();
+  var accelerationComplete = [];
+
+  (function start() {
+    if (reels.length) {
+      reels.shift().spin(function () {
+        accelerationComplete.push(1);
+
+        if (accelerationComplete.length === slotMachine.reels.length) {
+          slotMachine.trigger('start-complete');
+        }
+      });
+
+      setTimeout(start, 100);
+    }
+  })();
+}
+
+SlotMachine.prototype.stop = function () {
+  var slotMachine = this;
+  var reels = slotMachine.reels.slice();
+  var decelerationComplete = [];
+
+  (function stop() {
+    if (reels.length) {
+      reels.shift().stop(function () {
+        decelerationComplete.push(1);
+
+        if (decelerationComplete.length === slotMachine.reels.length) {
+          slotMachine.trigger('stop-complete');
+        }
+      });
+
+      setTimeout(stop, 500);
+    }
+  })();
+}
+
+});
+require.register("slot-machine/lib/reel.js", function(exports, require, module){
+var Progress = require('progress');
+var eventy = require('eventy');
+var delta = require('delta');
+
+module.exports = Reel;
+
+function Reel(el) {
+  var reel = eventy(this);
+
+  reel.el = el;
+  reel.fps = 60;
+  reel.spinning;
+  reel.progress;
+  reel.height = 300;
+  reel.item = 0;
+  reel.items = 3;
+
+  Object.defineProperty(reel, 'spinHeight', {
+    get: function () {
+      var Y = this.el.style.backgroundPosition.split(' ').pop();
+
+      return parseFloat(Y);
+    },
+
+    set: function (value) {
+      this.el.style.backgroundPosition = '0px '+ value + 'px';
+    }
+  });
+
+  /**
+   * Setup a default value of backgroundPosition style
+   */
+  reel.el.style.backgroundPosition = '0px 0px';
+}
+
+Reel.prototype.spin = function (accelerationComplete) {
+  var reel = this;
+  var progress = new Progress;
+  var isAccelerationComplete = false;
+
+  progress.begin = 0;
+  progress.end = Math.round(Math.random() * 5) + 20;
+  progress.duration = 1000;
+  progress.delta = delta.easeInQuad;
+  progress.start();
+  reel.progress = progress
+
+  reel.spinning = setInterval(function () {
+    /** For Firefox */
+    var positionX = '0px';
+    var positionY = reel.spinHeight + reel.progress.progression + 'px';
+
+    reel.el.style.backgroundPosition = positionX + ' ' + positionY;
+
+    /**
+     * Trigger accelerationComplete for the first time
+     */
+    if (!isAccelerationComplete && progress.done) {
+      isAccelerationComplete = true;
+      accelerationComplete && accelerationComplete();
+    }
+  }, 1000 / this.fps);
+}
+
+Reel.prototype.stop = function (decelerationComplete) {
+  var reel = this;
+
+  /**
+   * Stop the spinning first
+   */
+  clearInterval(reel.spinning);
+
+  /**
+   * Average height of items
+   */
+  var itemHeight = reel.height / reel.items;
+  
+  /**
+   * How many rounds we've ran
+   */
+  var laps = Math.floor(reel.spinHeight / reel.height);
+
+  /**
+   * How long we ran in the last round
+   */
+  var remainder = reel.spinHeight % reel.height;
+
+  /**
+   * The nth item in the last round
+   */
+  var nth = Math.ceil(remainder / itemHeight);
+
+  /**
+   * Let's spin the reel to the nth item
+   */
+  var end = (laps * reel.height) + (nth * itemHeight);
+
+  reel.el.style.backgroundPosition = '0px' + ' ' + end + 'px';
+
+  /**
+   * Turn the nth in descend order because we're spinning in reverse mode
+   */
+  reel.item = this.items - (nth - 1);
+
+  decelerationComplete && decelerationComplete();
+}
+
+});
 
 
 
