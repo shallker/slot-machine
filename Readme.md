@@ -9,7 +9,11 @@
 
     $ component install shallker/slot-machine
 
-## API
+## Compatibility
+- Firefox 24
+- Safari 6.0
+- Chrome 30
+- IE (unknown)
 
 ## Play
 http://shallker.github.io/slot-machine/test   
