@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/build/build.css"><style type="text/css">.container {
+  max-width: 800px;
+  min-width: 310px;
+  margin: auto;
+  text-align: center;
+}
+</style><style type="text/css">#start,
+#stop,
+#info {
+  margin-top: 20px;
+}
+</style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="slot-machine" class="slot-machine">
+        <div class="reels">
+          <div id="one" class="reel one">
+            <div class="top shadow"></div>
+            <div class="bottom shadow"></div>
+          </div>
+          <div id="two" class="reel two">
+            <div class="top shadow"></div>
+            <div class="bottom shadow"></div>
+          </div>
+          <div id="three" class="reel three">
+            <div class="top shadow"></div>
+            <div class="bottom shadow"></div>
+          </div>
+        </div>
+      </div>
+      <div id="info"></div>
+      <button id="start" onclick="start()">I'm lucky</button>
+      <button id="stop" onclick="stop()" style="display: none;">Stop</button>
+    </div>
+    <script src="/build/build.js"></script>
+    <script>
+      var SlotMachine = require('slot-machine');
+      var divInfo = document.getElementById('info');
+      var divSlotMachine = document.getElementById('slot-machine');
+      var buttonStart = document.getElementById('start');
+      var buttonStop = document.getElementById('stop');
+      
+      SlotMachine.reelItems = 3;
+      SlotMachine.reelHeight = 300;
+      
+      var slotMachine = new SlotMachine(divSlotMachine);
+      
+      function start() {
+        slotMachine.start();
+        divInfo.textContent = '';
+        buttonStart.style.display = 'none';
+      }
+      
+      function stop() {
+        slotMachine.stop();
+        buttonStop.style.display = 'none';
+      }
+      
+      slotMachine.on('start-complete', function () {
+        buttonStop.style.display = 'inline-block';
+      });
+      
+      slotMachine.on('stop-complete', function () {
+        var items = uniq(slotMachine.reels.map(function (reel) {
+          return reel.item;
+        }));
+        
+        if (items.length === 1) {
+          won(items.shift());
+        } else {
+          lose();
+        }
+        
+        buttonStart.style.display = 'inline-block';
+      });
+      
+      function uniq(array) {
+        return array.filter(function (item, index) {
+          return array.indexOf(item) === index;
+        });
+      }
+      
+      function won(item) {
+        var beverage = 'nothing :(';
+        
+        switch (item) {
+          case 1:
+            beverage = 'coffee';
+          break;
+          
+          case 2:
+            beverage = 'tea';
+          break;
+          
+          case 3:
+            beverage = 'espresso';
+          break;
+        }
+        
+        divInfo.textContent = 'You won ' + beverage + ', have a good day :)';
+      }
+      
+      function lose() {
+        divInfo.textContent = 'You lose';
+      }
+    </script>
+  </body>
+</html>
