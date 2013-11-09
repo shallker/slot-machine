@@ -1,0 +1,96 @@
+extends layout/default
+
+append styles
+  :stylus
+    #start, #stop, #info
+      margin-top 20px
+
+append content
+  .slot-machine#slot-machine
+    .reels
+      .reel.one#one
+        .top.shadow
+        .bottom.shadow
+      .reel.two#two
+        .top.shadow
+        .bottom.shadow
+      .reel.three#three
+        .top.shadow
+        .bottom.shadow
+
+  #info
+
+  button#start(onclick="start()") I'm lucky
+  button#stop(onclick="stop()", style="display: none;") Stop
+
+append scripts
+  script
+    var SlotMachine = require('slot-machine');
+    var divInfo = document.getElementById('info');
+    var divSlotMachine = document.getElementById('slot-machine');
+    var buttonStart = document.getElementById('start');
+    var buttonStop = document.getElementById('stop');
+
+    SlotMachine.reelItems = 3;
+    SlotMachine.reelHeight = 300;
+
+    var slotMachine = new SlotMachine(divSlotMachine);
+
+    function start() {
+      slotMachine.start();
+      divInfo.textContent = '';
+      buttonStart.style.display = 'none';
+    }
+
+    function stop() {
+      slotMachine.stop();
+      buttonStop.style.display = 'none';
+    }
+
+    slotMachine.on('start-complete', function () {
+      buttonStop.style.display = 'inline-block';
+    });
+
+    slotMachine.on('stop-complete', function () {
+      var items = uniq(slotMachine.reels.map(function (reel) {
+        return reel.item;
+      }));
+
+      if (items.length === 1) {
+        won(items.shift());
+      } else {
+        lose();
+      }
+
+      buttonStart.style.display = 'inline-block';
+    });
+
+    function uniq(array) {
+      return array.filter(function (item, index) {
+        return array.indexOf(item) === index;
+      });
+    }
+
+    function won(item) {
+      var beverage = 'nothing :(';
+
+      switch (item) {
+        case 1:
+          beverage = 'coffee';
+        break;
+
+        case 2:
+          beverage = 'tea';
+        break;
+
+        case 3:
+          beverage = 'espresso';
+        break;
+      }
+
+      divInfo.textContent = 'You won ' + beverage + ', have a good day :)';
+    }
+
+    function lose() {
+      divInfo.textContent = 'You lose';
+    }

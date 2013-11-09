@@ -1,0 +1,31 @@
+{
+  "name": "slot-machine",
+  "repo": "shallker/slot-machine",
+  "description": "For fun",
+  "version": "0.0.1",
+  "keywords": [],
+  "dependencies": {
+    "object-dom/object-document": "*",
+    "object-dom/object-element-style": "*",
+    "object-dom/object-element-selection": "*",
+    "shallker-wang/eventy": "*",
+    "shallker/progress": "*",
+    "shallker/delta": "*"
+  },
+  "development": {},
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": [
+    "index.js",
+    "lib/slot-machine.js",
+    "lib/reel.js"
+  ],
+  "styles": [
+    "css/slot-machine.css"
+  ],
+  "images": [
+    "img/reel-01.png",
+    "img/reel-02.png",
+    "img/reel-03.png"
+  ]
+}
