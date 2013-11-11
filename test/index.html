@@ -9,7 +9,10 @@
   margin: auto;
   text-align: center;
 }
-</style><style type="text/css">#start,
+</style><style type="text/css">.container {
+  padding: 20px;
+}
+#start,
 #stop,
 #info {
   margin-top: 20px;
@@ -35,8 +38,8 @@
         </div>
       </div>
       <div id="info"></div>
-      <button id="start" onclick="start()">I'm lucky</button>
-      <button id="stop" onclick="stop()" style="display: none;">Stop</button>
+      <button id="start" onclick="start()" class="button medium primary">I'm lucky</button>
+      <button id="stop" onclick="stop()" style="display: none;" class="button medium inverse">Stop</button>
     </div>
     <script src="../build/build.js"></script>
     <script>
