@@ -2,6 +2,9 @@ extends layout/default
 
 append styles
   :stylus
+    .container
+      padding 20px
+
     #start, #stop, #info
       margin-top 20px
 
@@ -20,8 +23,8 @@ append content
 
   #info
 
-  button#start(onclick="start()") I'm lucky
-  button#stop(onclick="stop()", style="display: none;") Stop
+  button.button.medium.primary#start(onclick="start()") I'm lucky
+  button.button.medium.inverse#stop(onclick="stop()", style="display: none;") Stop
 
 append scripts
   script
