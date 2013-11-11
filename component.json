@@ -5,6 +5,10 @@
   "version": "0.0.1",
   "keywords": [],
   "dependencies": {
+    "necolas/normalize.css": "*",
+    "bottom/button": "*",
+    "bottom/button-sizes": "*",
+    "bottom/button-types": "*",
     "object-dom/object-document": "*",
     "object-dom/object-element-style": "*",
     "object-dom/object-element-selection": "*",
